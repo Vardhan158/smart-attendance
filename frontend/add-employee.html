@@ -61,7 +61,7 @@
     const id = document.getElementById('empId').value.trim();
     const name = document.getElementById('empName').value.trim();
 
-    const res = await fetch('http://localhost:3000/employee', {
+    const res = await fetch('https://smart-attendance-backend-wa54.onrender.com', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, name }),
