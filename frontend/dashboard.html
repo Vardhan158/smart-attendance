@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Employee Attendance Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    nav {
+      height: 100vh;
+      width: 250px;
+      position: fixed;
+      top: 0; left: 0;
+      background-color: #333;
+      padding-top: 60px;
+      z-index: 1000;
+    }
+    nav a {
+      padding: 12px 30px;
+      text-decoration: none;
+      font-size: 1.2rem;
+      color: white;
+      display: block;
+      transition: 0.3s;
+    }
+    nav a:hover {
+      background-color: #575757;
+    }
+    main {
+      margin-left: 270px;
+      max-width: 900px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px;
+      text-align: left;
+    }
+    #dayDetailsSection {
+      margin-top: 40px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <nav id="sidebar">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="add-employee.html">Add Employee</a>
+    <a href="logout.html">Logout</a>
+  </nav>
+
+  <main>
+    <h2>Employee Attendance Summary</h2>
+
+    <label>
+      Enter Employee ID: 
+      <input type="text" id="empIdInput" placeholder="Employee ID" />
+    </label>
+    <button id="btnLoadSummary">Load Summary</button>
+
+    <div id="summaryResult" style="margin-top: 20px; font-weight: bold;"></div>
+
+    <table id="summaryTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Check-In</th>
+          <th>Check-Out</th>
+          <th>Late Entry</th>
+          <th>Early Check-Out</th>
+          <th>Half Day</th>
+          <th>Working Hours</th>
+        </tr>
+      </thead>
+      <tbody id="summaryList"></tbody>
+    </table>
+
+    <section id="dayDetailsSection" style="display:none;">
+      <h3>Check Attendance for a Specific Day</h3>
+      <input type="date" id="dayDateInput" />
+      <button id="btnShowDayDetails">Show Attendance</button>
+
+      <p id="dayResult" style="font-weight: bold; margin-top: 15px;"></p>
+
+      <table id="dayTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Check-In</th>
+            <th>Check-Out</th>
+            <th>Late Entry</th>
+            <th>Early Check-Out</th>
+            <th>Half Day</th>
+            <th>Working Hours</th>
+          </tr>
+        </thead>
+        <tbody id="dayList"></tbody>
+      </table>
+    </section>
+  </main>
+
+<script>
+  const LATE_CHECKIN_THRESHOLD = '10:15:00';  // After 10 AM = late
+  const EARLY_CHECKOUT_THRESHOLD = '16:40:00'; // Before 5 PM = early leave
+
+  function timeToSeconds(t) {
+    const [h, m, s=0] = t.split(':').map(Number);
+    return h*3600 + m*60 + s;
+  }
+
+  function isLateCheckIn(checkIn) {
+    if (!checkIn) return false;
+    return timeToSeconds(checkIn) > timeToSeconds(LATE_CHECKIN_THRESHOLD);
+  }
+
+  function isEarlyCheckOut(checkOut) {
+    if (!checkOut) return false;
+    return timeToSeconds(checkOut) < timeToSeconds(EARLY_CHECKOUT_THRESHOLD);
+  }
+
+  function calculateWorkingHours(checkIn, checkOut) {
+    if (!checkIn || !checkOut) return null;
+
+    const [inH, inM, inS = 0] = checkIn.split(':').map(Number);
+    const [outH, outM, outS = 0] = checkOut.split(':').map(Number);
+
+    const start = new Date(1970, 0, 1, inH, inM, inS);
+    const end = new Date(1970, 0, 1, outH, outM, outS);
+
+    let diffMs = end - start;
+    if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m`;
+  }
+
+  async function fetchEmployees() {
+    const res = await fetch('http://localhost:3000/employees');
+    if (!res.ok) throw new Error('Failed to fetch employees');
+    return await res.json();
+  }
+
+  async function fetchAllAttendance() {
+    // Fetch the entire attendance JSON object like your sample data
+    const res = await fetch('http://localhost:3000/attendance');
+    if (!res.ok) throw new Error('Failed to fetch attendance data');
+    return await res.json();
+  }
+
+  async function fetchAttendanceByEmployee(empId) {
+    // Adjust to use full attendance JSON and extract data for this employee
+    const attendanceData = await fetchAllAttendance();
+
+    if (!attendanceData[empId]) {
+      return []; // No records found
+    }
+
+    const empAttendance = attendanceData[empId]; // object of date keys
+
+    // Convert to array of records [{date, checkIn, checkOut}]
+    return Object.entries(empAttendance).map(([date, record]) => ({
+      date,
+      checkIn: record.checkIn || null,
+      checkOut: record.checkOut || null,
+    }));
+  }
+
+  async function fetchAttendanceByDate(empId, date) {
+    const attendanceData = await fetchAllAttendance();
+
+    if (!attendanceData[empId] || !attendanceData[empId][date]) {
+      return null; // no record found
+    }
+    return attendanceData[empId][date];
+  }
+
+  document.getElementById('btnLoadSummary').addEventListener('click', async () => {
+    const empId = document.getElementById('empIdInput').value.trim();
+    const summaryResult = document.getElementById('summaryResult');
+    const summaryTable = document.getElementById('summaryTable');
+    const summaryList = document.getElementById('summaryList');
+    const dayDetailsSection = document.getElementById('dayDetailsSection');
+
+    summaryResult.textContent = '';
+    summaryList.innerHTML = '';
+    summaryTable.style.display = 'none';
+    dayDetailsSection.style.display = 'none';
+
+    if (!empId) {
+      alert('Please enter Employee ID.');
+      return;
+    }
+
+    try {
+      const employees = await fetchEmployees();
+      const employee = employees.find(e => e.id === empId);
+      if (!employee) {
+        summaryResult.textContent = 'Employee not found.';
+        return;
+      }
+
+      const attendanceRecords = await fetchAttendanceByEmployee(empId);
+
+      if (attendanceRecords.length === 0) {
+        summaryResult.textContent = 'No attendance records found for this employee.';
+        return;
+      }
+
+      // Stats counters
+      let totalDays = attendanceRecords.length;
+      let lateCount = 0;
+      let earlyCount = 0;
+      let halfDayCount = 0;
+
+      summaryList.innerHTML = '';
+
+      attendanceRecords.forEach(record => {
+        const late = isLateCheckIn(record.checkIn);
+        const early = isEarlyCheckOut(record.checkOut);
+        const workingHours = calculateWorkingHours(record.checkIn, record.checkOut) || '-';
+        const halfDay = late || early;
+
+        if (late) lateCount++;
+        if (early) earlyCount++;
+        if (halfDay) halfDayCount++;
+
+       
+
+        summaryList.innerHTML += `
+          <tr>
+            <td>${record.date}</td>
+            <td>${record.checkIn || '-'}</td>
+            <td>${record.checkOut || '-'}</td>
+            <td>${late ? 'Yes' : 'No'}</td>
+            <td>${early ? 'Yes' : 'No'}</td>
+            <td>${halfDay ? 'Yes' : 'No'}</td>
+            <td>${workingHours}</td>
+          </tr>
+        `;
+      });
+
+      summaryResult.textContent = `
+        Total Days: ${totalDays} | Late Entries: ${lateCount} | Early Check-Outs: ${earlyCount} | Half Days: ${halfDayCount}
+      `;
+      summaryTable.style.display = 'table';
+      dayDetailsSection.style.display = 'block';
+
+    } catch (error) {
+      summaryResult.textContent = 'Error loading data.';
+      console.error(error);
+    }
+  });
+
+  document.getElementById('btnShowDayDetails').addEventListener('click', async () => {
+    const empId = document.getElementById('empIdInput').value.trim();
+    const date = document.getElementById('dayDateInput').value;
+    const dayResult = document.getElementById('dayResult');
+    const dayTable = document.getElementById('dayTable');
+    const dayList = document.getElementById('dayList');
+
+    dayResult.textContent = '';
+    dayList.innerHTML = '';
+    dayTable.style.display = 'none';
+
+    if (!empId || !date) {
+      alert('Please enter Employee ID and date.');
+      return;
+    }
+
+try {
+  const employees = await fetchEmployees();
+  const employee = employees.find(e => e.id === empId);
+  if (!employee) {
+    dayResult.textContent = 'Employee not found.';
+    return;
+  }
+
+  const record = await fetchAttendanceByDate(empId, date);
+
+  if (!record) {
+    dayResult.textContent = `No attendance record found for ${date}.`;
+    return;
+  }
+
+  const late = isLateCheckIn(record.checkIn);
+  const early = isEarlyCheckOut(record.checkOut);
+  const halfDay = late || early;
+  const workingHours = calculateWorkingHours(record.checkIn, record.checkOut) || '-';
+
+  dayList.innerHTML = `
+    <tr>
+      <td>${empId}</td>
+      <td>${employee.name}</td>
+      <td>${date}</td>
+      <td>${record.checkIn || '-'}</td>
+      <td>${record.checkOut || '-'}</td>
+      <td>${late ? 'Yes' : 'No'}</td>
+      <td>${early ? 'Yes' : 'No'}</td>
+      <td>${halfDay ? 'Yes' : 'No'}</td>
+      <td>${workingHours}</td>
+    </tr>
+  `;
+  dayTable.style.display = 'table';
+  dayResult.textContent = '';
+} catch (error) {
+  dayResult.textContent = 'Error loading attendance data.';
+  console.error(error);
+}
+});
+</script>
+
+</body> </html>

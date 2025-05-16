@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Employee Attendance</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    input, button { font-size: 1rem; padding: 0.5rem; margin: 0.3rem; }
+    button:disabled { background-color: #ccc; }
+    #employeeInfo { margin-top: 20px; }
+
+    /* Hamburger styles */
+    .hamburger {
+      cursor: pointer;
+      width: 30px;
+      height: 25px;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hamburger div {
+      height: 4px;
+      background-color: #333;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    /* Sidebar nav */
+    nav {
+      height: 100vh;
+      width: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: #333;
+      overflow-x: hidden;
+      transition: 0.3s;
+      padding-top: 60px;
+      z-index: 1000;
+    }
+    nav.active {
+      width: 250px;
+    }
+    nav a {
+      padding: 12px 30px;
+      text-decoration: none;
+      font-size: 1.2rem;
+      color: white;
+      display: block;
+      transition: 0.3s;
+    }
+    nav a:hover {
+      background-color: #575757;
+    }
+
+    /* Content sections */
+    section {
+      margin-left: 0;
+      padding: 20px;
+      display: none;
+    }
+    section.active {
+      display: block;
+      margin-left: 260px; /* leave space for sidebar */
+    }
+  </style>
+</head>
+<body>
+  <!-- Hamburger icon -->
+  <div class="hamburger" id="hamburger">
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <!-- Sidebar navigation -->
+  <nav id="sidebar">
+    <a href="index.html" data-section="home">Home</a>
+    <a href="dashboard.html" data-section="dashboard">Dashboard</a>
+    <a href="add-employee.html" data-section="addEmployee">Add Employee</a>
+    <a href="logout.html" data-section="logout">Logout</a>
+  </nav>
+
+  <!-- Content sections -->
+  <section id="home" class="active">
+    <h1>Employee Attendance</h1>
+    <input type="text" id="empId" placeholder="Enter Employee ID" />
+    <button id="btnFind">Find</button>
+
+    <div id="employeeInfo" style="display:none;">
+      <p>Employee ID: <span id="displayId"></span></p>
+      <p>Employee Name: <span id="displayName"></span></p>
+
+      <button id="btnCheckIn">Check In</button>
+      <button id="btnCheckOut">Check Out</button>
+
+      <p id="message"></p>
+    </div>
+  </section>
+
+  <section id="dashboard">
+    <h1>Dashboard</h1>
+    <p>Show employees who have checked in and out.</p>
+    <!-- You can add dashboard details here -->
+  </section>
+
+  <section id="addEmployee">
+    <h1></h1><a href="add-employee.html" data-section="addEmployee">Add Employee</a>
+    
+    <!-- Add your add employee form here -->
+  </section>
+
+  <section id="logout">
+    <h1>Logout</h1>
+    <p>You have been logged out.</p>
+  </section>
+
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const hamburger = document.getElementById('hamburger');
+      const sidebar = document.getElementById('sidebar');
+      const links = sidebar.querySelectorAll('a');
+      
+      hamburger.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+      });
+    
+      links.forEach(link => {
+        link.addEventListener('click', () => {
+          // No preventDefault — so navigation happens
+          sidebar.classList.remove('active'); // just close sidebar
+        });
+      });
+    });
+  </script>
+  
+</body>
+</html>
