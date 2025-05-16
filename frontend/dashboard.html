@@ -144,14 +144,14 @@
   }
 
   async function fetchEmployees() {
-    const res = await fetch('http://localhost:3000/employees');
+    const res = await fetch('https://smart-attendance-backend-wa54.onrender.com');
     if (!res.ok) throw new Error('Failed to fetch employees');
     return await res.json();
   }
 
   async function fetchAllAttendance() {
     // Fetch the entire attendance JSON object like your sample data
-    const res = await fetch('http://localhost:3000/attendance');
+    const res = await fetch('https://smart-attendance-backend-wa54.onrender.com');
     if (!res.ok) throw new Error('Failed to fetch attendance data');
     return await res.json();
   }
