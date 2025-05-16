@@ -227,5 +227,5 @@ app.post('/employee', async (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`✅ Attendance backend running at http://localhost:${PORT}`);
+  console.log(`✅ Attendance backend running at https://smart-attendance-backend-wa54.onrender.com`);
 });
