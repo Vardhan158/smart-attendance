@@ -9,7 +9,7 @@ const message = document.getElementById('message');
 
 let currentEmpId = null;
 
-const backendBase = 'http://localhost:3000';
+const backendBase = 'https://smart-attendance-backend-wa54.onrender.com';
 
 btnFind.onclick = async () => {
   const empId = empIdInput.value.trim();
